@@ -1,0 +1,47 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "printWidth": 100,
+  "sortTailwindcss": true,
+  "sortImports": {
+    "newlinesBetween": true,
+    "customGroups": [
+      {
+        "groupName": "use-prefixed",
+        "elementNamePattern": ["use-*", "**/use-*"],
+        "modifiers": ["value"]
+      },
+      {
+        "groupName": "react",
+        "elementNamePattern": ["react", "react/**", "react-dom", "react-dom/**"],
+        "modifiers": ["value"]
+      },
+      {
+        "groupName": "components",
+        "elementNamePattern": ["@/components/**"],
+        "modifiers": ["value"]
+      }
+    ],
+    "groups": [
+      ["use-prefixed", "react"],
+      ["components", "value-external", "value-parent", "value-sibling", "value-index"],
+      "unknown",
+      "type-import"
+    ]
+  },
+  "sortPackageJson": false,
+  "endOfLine": "crlf",
+  "ignorePatterns": [
+    ".agents",
+    ".codegraph",
+    ".hallmark",
+    ".rtk",
+    ".adonisjs",
+    "node_modules",
+    "public",
+    "build",
+    "tmp"
+  ]
+}

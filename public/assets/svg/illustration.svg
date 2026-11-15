@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="420"
+    height="236" viewBox="940 108 420 236">
+    <g />
+    <g />
+    <g />
+    <g />
+    <g />
+    <g />
+    <g />
+    <g id="div1">
+        <g id="svg1" mask="url(#mask-for-svg11)">
+            <g />
+            <g />
+            <g />
+            <g />
+            <g />
+            <g />
+            <g />
+            <mask id="mask-for-svg11">
+                <rect width="420" height="236" x="940" y="108" fill="#ffffff" />
+            </mask>
+            <g transform="matrix(1 0 0 1 940 108)">
+                <defs color="rgb(15, 23, 42)" fill="none" stroke="none">
+                    <clipPath id="svg1-hc1">
+                        <rect x="36" y="58" width="150" height="92" rx="9" color="rgb(15, 23, 42)"
+                            fill="none" stroke="none" />
+                    </clipPath>
+                    <clipPath id="svg1-hc2">
+                        <rect x="234" y="40" width="150" height="92" rx="9" color="rgb(15, 23, 42)"
+                            fill="none" stroke="none" />
+                    </clipPath>
+                </defs>
+                <g transform="matrix(0.992546, -0.121869, 0.121869, 0.992546, -14.7644, 14.6035)"
+                    color="rgb(15, 23, 42)" fill="none" stroke="none">
+                    <rect x="26" y="48" width="172" height="134" rx="16" fill="rgb(255, 255, 255)"
+                        color="rgb(15, 23, 42)" stroke="none" />
+                    <g clip-path="url(&quot;#svg1-hc1&quot;)" color="rgb(15, 23, 42)" fill="none"
+                        stroke="none">
+                        <rect x="36" y="58" width="150" height="92" fill="rgb(191, 219, 254)"
+                            color="rgb(15, 23, 42)" stroke="none" />
+                        <circle cx="152" cy="82" r="10" fill="rgb(239, 246, 255)"
+                            color="rgb(15, 23, 42)" stroke="none" />
+                        <path d="M36 150V118l34-28 28 24 22-16 66 52z" fill="rgb(37, 99, 235)"
+                            color="rgb(15, 23, 42)" stroke="none" />
+                        <path d="M36 150v-10l28-20 30 22 26-14 66 22z" fill="rgb(30, 64, 175)"
+                            color="rgb(15, 23, 42)" stroke="none" />
+                    </g>
+                    <rect x="36" y="158" width="46" height="18" rx="9" fill="rgb(219, 234, 254)"
+                        color="rgb(15, 23, 42)" stroke="none" />
+                    <text x="59" y="171" text-anchor="middle" font-family="Inter, sans-serif"
+                        font-size="11px" font-weight="700" fill="rgb(15, 23, 42)"
+                        color="rgb(15, 23, 42)" stroke="none" dominant-baseline="auto"
+                        font-size-adjust="none" font-stretch="100%" font-style="normal"
+                        font-variant="normal" direction="ltr" letter-spacing="normal"
+                        text-decoration="none" text-rendering="auto" unicode-bidi="normal"
+                        word-spacing="0px" writing-mode="horizontal-tb" user-select="text">PNG</text>
+                </g>
+                <g transform="matrix(0.994522, 0.104528, -0.104528, 0.994522, 13.3944, -31.5812)"
+                    color="rgb(15, 23, 42)" fill="none" stroke="none">
+                    <rect x="224" y="30" width="172" height="134" rx="16" fill="rgb(255, 255, 255)"
+                        color="rgb(15, 23, 42)" stroke="none" />
+                    <g clip-path="url(&quot;#svg1-hc2&quot;)" color="rgb(15, 23, 42)" fill="none"
+                        stroke="none">
+                        <rect x="234" y="40" width="150" height="92" fill="rgb(219, 234, 254)"
+                            color="rgb(15, 23, 42)" stroke="none" />
+                        <circle cx="350" cy="64" r="10" fill="rgb(255, 255, 255)"
+                            color="rgb(15, 23, 42)" stroke="none" />
+                        <path d="M234 132V100l34-28 28 24 22-16 66 52z" fill="rgb(96, 165, 250)"
+                            color="rgb(15, 23, 42)" stroke="none" />
+                        <path d="M234 132v-10l28-20 30 22 26-14 66 22z" fill="rgb(29, 78, 216)"
+                            color="rgb(15, 23, 42)" stroke="none" />
+                    </g>
+                    <rect x="234" y="140" width="54" height="18" rx="9" fill="rgb(37, 99, 235)"
+                        color="rgb(15, 23, 42)" stroke="none" />
+                    <text x="261" y="153" text-anchor="middle" font-family="Inter, sans-serif"
+                        font-size="11px" font-weight="700" fill="rgb(15, 23, 42)"
+                        color="rgb(15, 23, 42)" stroke="none" dominant-baseline="auto"
+                        font-size-adjust="none" font-stretch="100%" font-style="normal"
+                        font-variant="normal" direction="ltr" letter-spacing="normal"
+                        text-decoration="none" text-rendering="auto" unicode-bidi="normal"
+                        word-spacing="0px" writing-mode="horizontal-tb" user-select="text">WEBP</text>
+                </g>
+                <circle cx="210" cy="118" r="26" fill="rgb(37, 99, 235)" stroke="rgb(30, 58, 138)"
+                    stroke-width="5px" color="rgb(15, 23, 42)" />
+                <path d="M200 118h20M214 110l8 8-8 8" stroke="rgb(255, 255, 255)"
+                    stroke-width="2.6px" stroke-linecap="round" stroke-linejoin="round"
+                    color="rgb(15, 23, 42)" fill="none" />
+                <circle cx="388" cy="34" r="24" fill="rgb(219, 234, 254)" stroke="rgb(30, 58, 138)"
+                    stroke-width="4px" color="rgb(15, 23, 42)" />
+                <text x="388" y="39" text-anchor="middle" font-family="Inter, sans-serif"
+                    font-size="13px" font-weight="700" fill="rgb(15, 23, 42)"
+                    color="rgb(15, 23, 42)" stroke="none" dominant-baseline="auto"
+                    font-size-adjust="none" font-stretch="100%" font-style="normal"
+                    font-variant="normal" direction="ltr" letter-spacing="normal"
+                    text-decoration="none" text-rendering="auto" unicode-bidi="normal"
+                    word-spacing="0px" writing-mode="horizontal-tb" user-select="text">-55%</text>
+            </g>
+        </g>
+    </g>
+</svg>

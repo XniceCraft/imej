@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="620"
+    height="620" viewBox="990 -166 620 620">
+    <defs />
+    <g />
+    <g />
+    <g />
+    <g />
+    <g />
+    <g />
+    <g />
+    <g id="svg1" mask="url(#mask-for-svg11)">
+        <g />
+        <g />
+        <g />
+        <g />
+        <g />
+        <g />
+        <g />
+        <mask id="mask-for-svg11">
+            <rect width="620" height="620" x="990" y="-166" fill="#ffffff" />
+        </mask>
+        <g transform="matrix(1 0 0 1 990 -166)">
+            <circle cx="310" cy="310" r="300" stroke="rgb(59, 130, 246)" stroke-opacity="0.35"
+                stroke-width="1.5px" color="rgb(15, 23, 42)" fill="none" />
+            <circle cx="310" cy="310" r="235" stroke="rgb(96, 165, 250)" stroke-opacity="0.3"
+                stroke-width="1.5px" color="rgb(15, 23, 42)" fill="none" />
+            <circle cx="310" cy="310" r="170" stroke="rgb(147, 197, 253)" stroke-opacity="0.25"
+                stroke-width="1.5px" color="rgb(15, 23, 42)" fill="none" />
+            <circle cx="310" cy="310" r="105" stroke="rgb(191, 219, 254)" stroke-opacity="0.2"
+                stroke-width="1.5px" color="rgb(15, 23, 42)" fill="none" />
+        </g>
+    </g>
+</svg>
