@@ -1,226 +1,208 @@
-"use client";
+'use client'
 
-import { mergeProps } from "@base-ui/react/merge-props";
-import { useRender } from "@base-ui/react/use-render";
-import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
-import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
-import { cn } from "cn";
-import * as React from "react";
+import { useRender } from '@base-ui/react/use-render'
+import * as React from 'react'
 
-import { useDirection } from "@/components/ui/direction";
-import { FileVideoIcon, FileAudioIcon, FileTextIcon, FileCodeIcon, FileZipIcon, FileDashedIcon, FileIcon } from "@phosphor-icons/react";
+import { useDirection } from '@/components/ui/direction'
+import { mergeProps } from '@base-ui/react/merge-props'
+import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
+import { useValueAsRef } from '@base-ui/utils/useValueAsRef'
+import {
+  FileVideoIcon,
+  FileAudioIcon,
+  FileTextIcon,
+  FileCodeIcon,
+  FileZipIcon,
+  FileDashedIcon,
+  FileIcon,
+} from '@phosphor-icons/react'
+import { cn } from 'cn'
 
-const ROOT_NAME = "FileUpload";
-const DROPZONE_NAME = "FileUploadDropzone";
-const TRIGGER_NAME = "FileUploadTrigger";
-const LIST_NAME = "FileUploadList";
-const ITEM_NAME = "FileUploadItem";
-const ITEM_PREVIEW_NAME = "FileUploadItemPreview";
-const ITEM_METADATA_NAME = "FileUploadItemMetadata";
-const ITEM_PROGRESS_NAME = "FileUploadItemProgress";
-const ITEM_DELETE_NAME = "FileUploadItemDelete";
-const CLEAR_NAME = "FileUploadClear";
+import { requestPreview } from '@/lib/image-preview'
+
+const ROOT_NAME = 'FileUpload'
+const DROPZONE_NAME = 'FileUploadDropzone'
+const TRIGGER_NAME = 'FileUploadTrigger'
+const LIST_NAME = 'FileUploadList'
+const ITEM_NAME = 'FileUploadItem'
+const ITEM_PREVIEW_NAME = 'FileUploadItemPreview'
+const ITEM_METADATA_NAME = 'FileUploadItemMetadata'
+const ITEM_PROGRESS_NAME = 'FileUploadItemProgress'
+const ITEM_DELETE_NAME = 'FileUploadItemDelete'
+const CLEAR_NAME = 'FileUploadClear'
 
 function formatBytes(bytes: number) {
-  if (bytes === 0) return "0 B";
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / 1024 ** i).toFixed(i ? 1 : 0)} ${sizes[i]}`;
+  if (bytes === 0) return '0 B'
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  return `${(bytes / 1024 ** i).toFixed(i ? 1 : 0)} ${sizes[i]}`
 }
 
 function getFileIcon(file: File) {
-  const type = file.type;
-  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const type = file.type
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? ''
 
-  if (type.startsWith("video/")) {
-    return (
-      <FileVideoIcon
-      />
-    );
+  if (type.startsWith('video/')) {
+    return <FileVideoIcon />
   }
 
-  if (type.startsWith("audio/")) {
-    return (
-      <FileAudioIcon
-      />
-    );
+  if (type.startsWith('audio/')) {
+    return <FileAudioIcon />
   }
 
-  if (
-    type.startsWith("text/") ||
-    ["txt", "md", "rtf", "pdf"].includes(extension)
-  ) {
-    return (
-      <FileTextIcon
-      />
-    );
+  if (type.startsWith('text/') || ['txt', 'md', 'rtf', 'pdf'].includes(extension)) {
+    return <FileTextIcon />
   }
 
   if (
     [
-      "html",
-      "css",
-      "js",
-      "jsx",
-      "ts",
-      "tsx",
-      "json",
-      "xml",
-      "php",
-      "py",
-      "rb",
-      "java",
-      "c",
-      "cpp",
-      "cs",
+      'html',
+      'css',
+      'js',
+      'jsx',
+      'ts',
+      'tsx',
+      'json',
+      'xml',
+      'php',
+      'py',
+      'rb',
+      'java',
+      'c',
+      'cpp',
+      'cs',
     ].includes(extension)
   ) {
-    return (
-      <FileCodeIcon
-      />
-    );
+    return <FileCodeIcon />
   }
 
-  if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(extension)) {
-    return (
-      <FileZipIcon
-      />
-    );
+  if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(extension)) {
+    return <FileZipIcon />
   }
 
   if (
-    ["exe", "msi", "app", "apk", "deb", "rpm"].includes(extension) ||
-    type.startsWith("application/")
+    ['exe', 'msi', 'app', 'apk', 'deb', 'rpm'].includes(extension) ||
+    type.startsWith('application/')
   ) {
-    return (
-      <FileDashedIcon
-      />
-    );
+    return <FileDashedIcon />
   }
 
-  return (
-    <FileIcon
-    />
-  );
+  return <FileIcon />
 }
 
-type Direction = "ltr" | "rtl";
+type Direction = 'ltr' | 'rtl'
 
 interface FileState {
-  file: File;
-  progress: number;
-  error?: string;
-  status: "idle" | "uploading" | "error" | "success";
+  file: File
+  progress: number
+  error?: string
+  status: 'idle' | 'uploading' | 'error' | 'success'
 }
 
 interface StoreState {
-  files: Map<File, FileState>;
-  dragOver: boolean;
-  invalid: boolean;
+  files: Map<File, FileState>
+  dragOver: boolean
+  invalid: boolean
 }
 
 type StoreAction =
-  | { type: "ADD_FILES"; files: File[] }
-  | { type: "SET_FILES"; files: File[] }
-  | { type: "SET_PROGRESS"; file: File; progress: number }
-  | { type: "SET_SUCCESS"; file: File }
-  | { type: "SET_ERROR"; file: File; error: string }
-  | { type: "REMOVE_FILE"; file: File }
-  | { type: "SET_DRAG_OVER"; dragOver: boolean }
-  | { type: "SET_INVALID"; invalid: boolean }
-  | { type: "CLEAR" };
+  | { type: 'ADD_FILES'; files: File[] }
+  | { type: 'SET_FILES'; files: File[] }
+  | { type: 'SET_PROGRESS'; file: File; progress: number }
+  | { type: 'SET_SUCCESS'; file: File }
+  | { type: 'SET_ERROR'; file: File; error: string }
+  | { type: 'REMOVE_FILE'; file: File }
+  | { type: 'SET_DRAG_OVER'; dragOver: boolean }
+  | { type: 'SET_INVALID'; invalid: boolean }
+  | { type: 'CLEAR' }
 
 type Store = {
-  getState: () => StoreState;
-  dispatch: (action: StoreAction) => void;
-  subscribe: (listener: () => void) => () => void;
-};
+  getState: () => StoreState
+  dispatch: (action: StoreAction) => void
+  subscribe: (listener: () => void) => () => void
+}
 
-const StoreContext = React.createContext<Store | null>(null);
+const StoreContext = React.createContext<Store | null>(null)
 
 function useStoreContext(consumerName: string) {
-  const context = React.useContext(StoreContext);
+  const context = React.useContext(StoreContext)
   if (!context) {
-    throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``);
+    throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``)
   }
-  return context;
+  return context
 }
 
 function useStore<T>(selector: (state: StoreState) => T): T {
-  const store = useStoreContext("useStore");
+  const store = useStoreContext('useStore')
 
-  const lastValueRef = useRefWithInit<{ value: T; state: StoreState } | null>(
-    () => null,
-  );
+  const lastValueRef = useRefWithInit<{ value: T; state: StoreState } | null>(() => null)
 
   const getSnapshot = React.useCallback(() => {
-    const state = store.getState();
-    const prevValue = lastValueRef.current;
+    const state = store.getState()
+    const prevValue = lastValueRef.current
 
     if (prevValue && prevValue.state === state) {
-      return prevValue.value;
+      return prevValue.value
     }
 
-    const nextValue = selector(state);
-    lastValueRef.current = { value: nextValue, state };
-    return nextValue;
-  }, [store, selector, lastValueRef]);
+    const nextValue = selector(state)
+    lastValueRef.current = { value: nextValue, state }
+    return nextValue
+  }, [store, selector, lastValueRef])
 
-  return React.useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot);
+  return React.useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot)
 }
 
 interface FileUploadContextValue {
-  inputId: string;
-  dropzoneId: string;
-  listId: string;
-  labelId: string;
-  disabled: boolean;
-  dir: Direction;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  urlCache: WeakMap<File, string>;
+  inputId: string
+  dropzoneId: string
+  listId: string
+  labelId: string
+  disabled: boolean
+  dir: Direction
+  inputRef: React.RefObject<HTMLInputElement | null>
+  urlCache: WeakMap<File, string>
 }
 
-const FileUploadContext = React.createContext<FileUploadContextValue | null>(
-  null,
-);
+const FileUploadContext = React.createContext<FileUploadContextValue | null>(null)
 
 function useFileUploadContext(consumerName: string) {
-  const context = React.useContext(FileUploadContext);
+  const context = React.useContext(FileUploadContext)
   if (!context) {
-    throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``);
+    throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``)
   }
-  return context;
+  return context
 }
 
 interface FileUploadProps extends Omit<
-  React.ComponentProps<"div"> & useRender.ComponentProps<"div">,
-  "defaultValue" | "onChange"
+  React.ComponentProps<'div'> & useRender.ComponentProps<'div'>,
+  'defaultValue' | 'onChange'
 > {
-  value?: File[];
-  defaultValue?: File[];
-  onValueChange?: (files: File[]) => void;
-  onAccept?: (files: File[]) => void;
-  onFileAccept?: (file: File) => void;
-  onFileReject?: (file: File, message: string) => void;
-  onFileValidate?: (file: File) => string | null | undefined;
+  value?: File[]
+  defaultValue?: File[]
+  onValueChange?: (files: File[]) => void
+  onAccept?: (files: File[]) => void
+  onFileAccept?: (file: File) => void
+  onFileReject?: (file: File, message: string) => void
+  onFileValidate?: (file: File) => string | null | undefined
   onUpload?: (
     files: File[],
     options: {
-      onProgress: (file: File, progress: number) => void;
-      onSuccess: (file: File) => void;
-      onError: (file: File, error: Error) => void;
-    },
-  ) => Promise<void> | void;
-  accept?: string;
-  maxFiles?: number;
-  maxSize?: number;
-  dir?: Direction;
-  label?: string;
-  name?: string;
-  disabled?: boolean;
-  invalid?: boolean;
-  multiple?: boolean;
-  required?: boolean;
+      onProgress: (file: File, progress: number) => void
+      onSuccess: (file: File) => void
+      onError: (file: File, error: Error) => void
+    }
+  ) => Promise<void> | void
+  accept?: string
+  maxFiles?: number
+  maxSize?: number
+  dir?: Direction
+  label?: string
+  name?: string
+  disabled?: boolean
+  invalid?: boolean
+  multiple?: boolean
+  required?: boolean
 }
 
 function FileUpload(props: FileUploadProps) {
@@ -247,20 +229,20 @@ function FileUpload(props: FileUploadProps) {
     children,
     className,
     ...rootProps
-  } = props;
+  } = props
 
-  const inputId = React.useId();
-  const dropzoneId = React.useId();
-  const listId = React.useId();
-  const labelId = React.useId();
+  const inputId = React.useId()
+  const dropzoneId = React.useId()
+  const listId = React.useId()
+  const labelId = React.useId()
 
-  const contextDir = useDirection();
-  const dir = dirProp ?? contextDir;
-  const listeners = useRefWithInit(() => new Set<() => void>()).current;
-  const files = useRefWithInit<Map<File, FileState>>(() => new Map()).current;
-  const urlCache = useRefWithInit(() => new WeakMap<File, string>()).current;
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const isControlled = value !== undefined;
+  const contextDir = useDirection()
+  const dir = dirProp ?? contextDir
+  const listeners = useRefWithInit(() => new Set<() => void>()).current
+  const files = useRefWithInit<Map<File, FileState>>(() => new Map()).current
+  const urlCache = useRefWithInit(() => new WeakMap<File, string>()).current
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const isControlled = value !== undefined
 
   const propsRef = useValueAsRef({
     onValueChange,
@@ -269,7 +251,7 @@ function FileUpload(props: FileUploadProps) {
     onFileReject,
     onFileValidate,
     onUpload,
-  });
+  })
 
   const store = React.useMemo<Store>(() => {
     const storeState: { current: StoreState } = {
@@ -278,367 +260,348 @@ function FileUpload(props: FileUploadProps) {
         dragOver: false,
         invalid: invalid,
       },
-    };
+    }
 
     function reducer(state: StoreState, action: StoreAction): StoreState {
       switch (action.type) {
-        case "ADD_FILES": {
+        case 'ADD_FILES': {
           for (const file of action.files) {
             files.set(file, {
               file,
               progress: 0,
-              status: "idle",
-            });
+              status: 'idle',
+            })
           }
 
           if (propsRef.current.onValueChange) {
-            const fileList = Array.from(files.values()).map(
-              (fileState) => fileState.file,
-            );
-            propsRef.current.onValueChange(fileList);
+            const fileList = Array.from(files.values()).map((fileState) => fileState.file)
+            propsRef.current.onValueChange(fileList)
           }
-          return { ...state, files };
+          return { ...state, files }
         }
 
-        case "SET_FILES": {
-          const newFileSet = new Set(action.files);
+        case 'SET_FILES': {
+          const newFileSet = new Set(action.files)
           for (const existingFile of files.keys()) {
             if (!newFileSet.has(existingFile)) {
-              files.delete(existingFile);
+              const cachedUrl = urlCache.get(existingFile)
+              if (cachedUrl) {
+                URL.revokeObjectURL(cachedUrl)
+                urlCache.delete(existingFile)
+              }
+              files.delete(existingFile)
             }
           }
 
           for (const file of action.files) {
-            const existingState = files.get(file);
+            const existingState = files.get(file)
             if (!existingState) {
               files.set(file, {
                 file,
                 progress: 0,
-                status: "idle",
-              });
+                status: 'idle',
+              })
             }
           }
-          return { ...state, files };
+          return { ...state, files }
         }
 
-        case "SET_PROGRESS": {
-          const fileState = files.get(action.file);
+        case 'SET_PROGRESS': {
+          const fileState = files.get(action.file)
           if (fileState) {
             files.set(action.file, {
               ...fileState,
               progress: action.progress,
-              status: "uploading",
-            });
+              status: 'uploading',
+            })
           }
-          return { ...state, files };
+          return { ...state, files }
         }
 
-        case "SET_SUCCESS": {
-          const fileState = files.get(action.file);
+        case 'SET_SUCCESS': {
+          const fileState = files.get(action.file)
           if (fileState) {
             files.set(action.file, {
               ...fileState,
               progress: 100,
-              status: "success",
-            });
+              status: 'success',
+            })
           }
-          return { ...state, files };
+          return { ...state, files }
         }
 
-        case "SET_ERROR": {
-          const fileState = files.get(action.file);
+        case 'SET_ERROR': {
+          const fileState = files.get(action.file)
           if (fileState) {
             files.set(action.file, {
               ...fileState,
               error: action.error,
-              status: "error",
-            });
+              status: 'error',
+            })
           }
-          return { ...state, files };
+          return { ...state, files }
         }
 
-        case "REMOVE_FILE": {
-          const cachedUrl = urlCache.get(action.file);
+        case 'REMOVE_FILE': {
+          const cachedUrl = urlCache.get(action.file)
           if (cachedUrl) {
-            URL.revokeObjectURL(cachedUrl);
-            urlCache.delete(action.file);
+            URL.revokeObjectURL(cachedUrl)
+            urlCache.delete(action.file)
           }
 
-          files.delete(action.file);
+          files.delete(action.file)
 
           if (propsRef.current.onValueChange) {
-            const fileList = Array.from(files.values()).map(
-              (fileState) => fileState.file,
-            );
-            propsRef.current.onValueChange(fileList);
+            const fileList = Array.from(files.values()).map((fileState) => fileState.file)
+            propsRef.current.onValueChange(fileList)
           }
-          return { ...state, files };
+          return { ...state, files }
         }
 
-        case "SET_DRAG_OVER": {
-          return { ...state, dragOver: action.dragOver };
+        case 'SET_DRAG_OVER': {
+          return { ...state, dragOver: action.dragOver }
         }
 
-        case "SET_INVALID": {
-          return { ...state, invalid: action.invalid };
+        case 'SET_INVALID': {
+          return { ...state, invalid: action.invalid }
         }
 
-        case "CLEAR": {
+        case 'CLEAR': {
           for (const file of files.keys()) {
-            const cachedUrl = urlCache.get(file);
+            const cachedUrl = urlCache.get(file)
             if (cachedUrl) {
-              URL.revokeObjectURL(cachedUrl);
-              urlCache.delete(file);
+              URL.revokeObjectURL(cachedUrl)
+              urlCache.delete(file)
             }
           }
 
-          files.clear();
+          files.clear()
           if (propsRef.current.onValueChange) {
-            propsRef.current.onValueChange([]);
+            propsRef.current.onValueChange([])
           }
-          return { ...state, files, invalid: false };
+          return { ...state, files, invalid: false }
         }
 
         default:
-          return state;
+          return state
       }
     }
 
     return {
       getState: () => storeState.current,
       dispatch: (action) => {
-        storeState.current = reducer(storeState.current, action);
+        storeState.current = reducer(storeState.current, action)
         for (const listener of listeners) {
-          listener();
+          listener()
         }
       },
       subscribe: (listener) => {
-        listeners.add(listener);
-        return () => listeners.delete(listener);
+        listeners.add(listener)
+        return () => listeners.delete(listener)
       },
-    };
-  }, [listeners, files, invalid, propsRef, urlCache]);
+    }
+  }, [listeners, files, invalid, propsRef, urlCache])
 
-  const acceptTypes = React.useMemo(
-    () => accept?.split(",").map((t) => t.trim()) ?? null,
-    [accept],
-  );
+  const acceptTypes = React.useMemo(() => accept?.split(',').map((t) => t.trim()) ?? null, [accept])
 
   const onProgress = useRefWithInit(() => {
-    let frame = 0;
+    let frame = 0
     return (file: File, progress: number) => {
-      if (frame) return;
+      if (frame) return
       frame = requestAnimationFrame(() => {
-        frame = 0;
+        frame = 0
         store.dispatch({
-          type: "SET_PROGRESS",
+          type: 'SET_PROGRESS',
           file,
           progress: Math.min(Math.max(0, progress), 100),
-        });
-      });
-    };
-  }).current;
+        })
+      })
+    }
+  }).current
 
   React.useEffect(() => {
     if (isControlled) {
-      store.dispatch({ type: "SET_FILES", files: value });
-    } else if (
-      defaultValue &&
-      defaultValue.length > 0 &&
-      !store.getState().files.size
-    ) {
-      store.dispatch({ type: "SET_FILES", files: defaultValue });
+      store.dispatch({ type: 'SET_FILES', files: value })
+    } else if (defaultValue && defaultValue.length > 0 && !store.getState().files.size) {
+      store.dispatch({ type: 'SET_FILES', files: defaultValue })
     }
-  }, [value, defaultValue, isControlled, store]);
+  }, [value, defaultValue, isControlled, store])
 
   React.useEffect(() => {
     return () => {
       for (const file of files.keys()) {
-        const cachedUrl = urlCache.get(file);
+        const cachedUrl = urlCache.get(file)
         if (cachedUrl) {
-          URL.revokeObjectURL(cachedUrl);
+          URL.revokeObjectURL(cachedUrl)
         }
       }
-    };
-  }, [files, urlCache]);
+    }
+  }, [files, urlCache])
 
   const onFilesUpload = React.useCallback(
     async (files: File[]) => {
       try {
         for (const file of files) {
-          store.dispatch({ type: "SET_PROGRESS", file, progress: 0 });
+          store.dispatch({ type: 'SET_PROGRESS', file, progress: 0 })
         }
 
         if (propsRef.current.onUpload) {
           await propsRef.current.onUpload(files, {
             onProgress,
             onSuccess: (file) => {
-              store.dispatch({ type: "SET_SUCCESS", file });
+              store.dispatch({ type: 'SET_SUCCESS', file })
             },
             onError: (file, error) => {
               store.dispatch({
-                type: "SET_ERROR",
+                type: 'SET_ERROR',
                 file,
-                error: error.message ?? "Upload failed",
-              });
+                error: error.message ?? 'Upload failed',
+              })
             },
-          });
+          })
         } else {
           for (const file of files) {
-            store.dispatch({ type: "SET_SUCCESS", file });
+            store.dispatch({ type: 'SET_SUCCESS', file })
           }
         }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Upload failed";
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed'
         for (const file of files) {
           store.dispatch({
-            type: "SET_ERROR",
+            type: 'SET_ERROR',
             file,
             error: errorMessage,
-          });
+          })
         }
       }
     },
-    [store, propsRef, onProgress],
-  );
+    [store, propsRef, onProgress]
+  )
 
   const onFilesChange = React.useCallback(
     (originalFiles: File[]) => {
-      if (disabled) return;
+      if (disabled) return
 
-      let filesToProcess = [...originalFiles];
-      let invalid = false;
+      let filesToProcess = [...originalFiles]
+      let invalid = false
 
       if (maxFiles) {
-        const currentCount = store.getState().files.size;
-        const remainingSlotCount = Math.max(0, maxFiles - currentCount);
+        const currentCount = store.getState().files.size
+        const remainingSlotCount = Math.max(0, maxFiles - currentCount)
 
         if (remainingSlotCount < filesToProcess.length) {
-          const rejectedFiles = filesToProcess.slice(remainingSlotCount);
-          invalid = true;
+          const rejectedFiles = filesToProcess.slice(remainingSlotCount)
+          invalid = true
 
-          filesToProcess = filesToProcess.slice(0, remainingSlotCount);
+          filesToProcess = filesToProcess.slice(0, remainingSlotCount)
 
           for (const file of rejectedFiles) {
-            let rejectionMessage = `Maximum ${maxFiles} files allowed`;
+            let rejectionMessage = `Maximum ${maxFiles} files allowed`
 
             if (propsRef.current.onFileValidate) {
-              const validationMessage = propsRef.current.onFileValidate(file);
+              const validationMessage = propsRef.current.onFileValidate(file)
               if (validationMessage) {
-                rejectionMessage = validationMessage;
+                rejectionMessage = validationMessage
               }
             }
 
-            propsRef.current.onFileReject?.(file, rejectionMessage);
+            propsRef.current.onFileReject?.(file, rejectionMessage)
           }
         }
       }
 
-      const acceptedFiles: File[] = [];
-      const rejectedFiles: { file: File; message: string }[] = [];
+      const acceptedFiles: File[] = []
+      const rejectedFiles: { file: File; message: string }[] = []
 
       for (const file of filesToProcess) {
-        let rejected = false;
-        let rejectionMessage = "";
+        let rejected = false
+        let rejectionMessage = ''
 
         if (propsRef.current.onFileValidate) {
-          const validationMessage = propsRef.current.onFileValidate(file);
+          const validationMessage = propsRef.current.onFileValidate(file)
           if (validationMessage) {
-            rejectionMessage = validationMessage;
-            propsRef.current.onFileReject?.(file, rejectionMessage);
-            rejected = true;
-            invalid = true;
-            continue;
+            rejectionMessage = validationMessage
+            propsRef.current.onFileReject?.(file, rejectionMessage)
+            rejected = true
+            invalid = true
+            continue
           }
         }
 
         if (acceptTypes) {
-          const fileType = file.type;
-          const fileExtension = `.${file.name.split(".").pop()}`;
+          const fileType = file.type
+          const fileExtension = `.${file.name.split('.').pop()}`
 
           if (
             !acceptTypes.some(
               (type) =>
                 type === fileType ||
                 type === fileExtension ||
-                (type.includes("/*") &&
-                  fileType.startsWith(type.replace("/*", "/"))),
+                (type.includes('/*') && fileType.startsWith(type.replace('/*', '/')))
             )
           ) {
-            rejectionMessage = "File type not accepted";
-            propsRef.current.onFileReject?.(file, rejectionMessage);
-            rejected = true;
-            invalid = true;
+            rejectionMessage = 'File type not accepted'
+            propsRef.current.onFileReject?.(file, rejectionMessage)
+            rejected = true
+            invalid = true
           }
         }
 
         if (maxSize && file.size > maxSize) {
-          rejectionMessage = "File too large";
-          propsRef.current.onFileReject?.(file, rejectionMessage);
-          rejected = true;
-          invalid = true;
+          rejectionMessage = 'File too large'
+          propsRef.current.onFileReject?.(file, rejectionMessage)
+          rejected = true
+          invalid = true
         }
 
         if (!rejected) {
-          acceptedFiles.push(file);
+          acceptedFiles.push(file)
         } else {
-          rejectedFiles.push({ file, message: rejectionMessage });
+          rejectedFiles.push({ file, message: rejectionMessage })
         }
       }
 
       if (invalid) {
-        store.dispatch({ type: "SET_INVALID", invalid });
+        store.dispatch({ type: 'SET_INVALID', invalid })
         setTimeout(() => {
-          store.dispatch({ type: "SET_INVALID", invalid: false });
-        }, 2000);
+          store.dispatch({ type: 'SET_INVALID', invalid: false })
+        }, 2000)
       }
 
       if (acceptedFiles.length > 0) {
-        store.dispatch({ type: "ADD_FILES", files: acceptedFiles });
+        store.dispatch({ type: 'ADD_FILES', files: acceptedFiles })
 
         if (isControlled && propsRef.current.onValueChange) {
-          const currentFiles = Array.from(store.getState().files.values()).map(
-            (f) => f.file,
-          );
-          propsRef.current.onValueChange([...currentFiles]);
+          const currentFiles = Array.from(store.getState().files.values()).map((f) => f.file)
+          propsRef.current.onValueChange([...currentFiles])
         }
 
         if (propsRef.current.onAccept) {
-          propsRef.current.onAccept(acceptedFiles);
+          propsRef.current.onAccept(acceptedFiles)
         }
 
         for (const file of acceptedFiles) {
-          propsRef.current.onFileAccept?.(file);
+          propsRef.current.onFileAccept?.(file)
         }
 
         if (propsRef.current.onUpload) {
           requestAnimationFrame(() => {
-            void onFilesUpload(acceptedFiles);
-          });
+            void onFilesUpload(acceptedFiles)
+          })
         }
       }
     },
-    [
-      store,
-      isControlled,
-      propsRef,
-      onFilesUpload,
-      maxFiles,
-      acceptTypes,
-      maxSize,
-      disabled,
-    ],
-  );
+    [store, isControlled, propsRef, onFilesUpload, maxFiles, acceptTypes, maxSize, disabled]
+  )
 
   const onInputChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files ?? []);
-      onFilesChange(files);
-      event.target.value = "";
+      const files = Array.from(event.target.files ?? [])
+      onFilesChange(files)
+      event.target.value = ''
     },
-    [onFilesChange],
-  );
+    [onFilesChange]
+  )
 
   const contextValue = React.useMemo<FileUploadContextValue>(
     () => ({
@@ -651,15 +614,15 @@ function FileUpload(props: FileUploadProps) {
       inputRef,
       urlCache,
     }),
-    [dropzoneId, inputId, listId, labelId, dir, disabled, urlCache],
-  );
+    [dropzoneId, inputId, listId, labelId, dir, disabled, urlCache]
+  )
 
   const element = useRender({
-    defaultTagName: "div",
-    props: mergeProps<"div">(
+    defaultTagName: 'div',
+    props: mergeProps<'div'>(
       {
         dir,
-        className: cn("relative flex flex-col gap-2", className),
+        className: cn('relative flex flex-col gap-2', className),
         children: (
           <>
             {children}
@@ -679,41 +642,39 @@ function FileUpload(props: FileUploadProps) {
               onChange={onInputChange}
             />
             <div id={labelId} className="sr-only">
-              {label ?? "File upload"}
+              {label ?? 'File upload'}
             </div>
           </>
         ),
       },
-      rootProps,
+      rootProps
     ),
     render,
     state: {
-      slot: "file-upload",
-      disabled: disabled ? "" : undefined,
+      slot: 'file-upload',
+      disabled: disabled ? '' : undefined,
     },
-  });
+  })
 
   return (
     <StoreContext.Provider value={store}>
-      <FileUploadContext.Provider value={contextValue}>
-        {element}
-      </FileUploadContext.Provider>
+      <FileUploadContext.Provider value={contextValue}>{element}</FileUploadContext.Provider>
     </StoreContext.Provider>
-  );
+  )
 }
 
 function setInputFiles(input: HTMLInputElement, files: File[]) {
-  const dataTransfer = new DataTransfer();
+  const dataTransfer = new DataTransfer()
   for (const file of files) {
-    dataTransfer.items.add(file);
+    dataTransfer.items.add(file)
   }
 
-  input.files = dataTransfer.files;
-  input.dispatchEvent(new Event("change", { bubbles: true }));
+  input.files = dataTransfer.files
+  input.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
 interface FileUploadDropzoneProps
-  extends React.ComponentProps<"div">, useRender.ComponentProps<"div"> {}
+  extends React.ComponentProps<'div'>, useRender.ComponentProps<'div'> {}
 
 function FileUploadDropzone(props: FileUploadDropzoneProps) {
   const {
@@ -727,12 +688,12 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
     onPaste: onPasteProp,
     onKeyDown: onKeyDownProp,
     ...dropzoneProps
-  } = props;
+  } = props
 
-  const context = useFileUploadContext(DROPZONE_NAME);
-  const store = useStoreContext(DROPZONE_NAME);
-  const dragOver = useStore((state) => state.dragOver);
-  const invalid = useStore((state) => state.invalid);
+  const context = useFileUploadContext(DROPZONE_NAME)
+  const store = useStoreContext(DROPZONE_NAME)
+  const dragOver = useStore((state) => state.dragOver)
+  const invalid = useStore((state) => state.invalid)
 
   const propsRef = useValueAsRef({
     onClick: onClickProp,
@@ -742,149 +703,148 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
     onDrop: onDropProp,
     onPaste: onPasteProp,
     onKeyDown: onKeyDownProp,
-  });
+  })
 
   const onClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      propsRef.current.onClick?.(event);
+      propsRef.current.onClick?.(event)
 
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented) return
 
-      const target = event.target;
+      const target = event.target
 
       const isFromTrigger =
-        target instanceof HTMLElement &&
-        target.closest('[data-slot="file-upload-trigger"]');
+        target instanceof HTMLElement && target.closest('[data-slot="file-upload-trigger"]')
 
       if (!isFromTrigger) {
-        context.inputRef.current?.click();
+        context.inputRef.current?.click()
       }
     },
-    [context.inputRef, propsRef],
-  );
+    [context.inputRef, propsRef]
+  )
 
   const onDragOver = React.useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
-      propsRef.current.onDragOver?.(event);
+      propsRef.current.onDragOver?.(event)
 
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented) return
 
-      event.preventDefault();
-      store.dispatch({ type: "SET_DRAG_OVER", dragOver: true });
+      event.preventDefault()
+      store.dispatch({ type: 'SET_DRAG_OVER', dragOver: true })
     },
-    [store, propsRef],
-  );
+    [store, propsRef]
+  )
 
   const onDragEnter = React.useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
-      propsRef.current.onDragEnter?.(event);
+      propsRef.current.onDragEnter?.(event)
 
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented) return
 
-      event.preventDefault();
-      store.dispatch({ type: "SET_DRAG_OVER", dragOver: true });
+      event.preventDefault()
+      store.dispatch({ type: 'SET_DRAG_OVER', dragOver: true })
     },
-    [store, propsRef],
-  );
+    [store, propsRef]
+  )
 
   const onDragLeave = React.useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
-      propsRef.current.onDragLeave?.(event);
+      propsRef.current.onDragLeave?.(event)
 
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented) return
 
-      const relatedTarget = event.relatedTarget;
+      const relatedTarget = event.relatedTarget
       if (
         relatedTarget &&
         relatedTarget instanceof Node &&
         event.currentTarget.contains(relatedTarget)
       ) {
-        return;
+        return
       }
 
-      event.preventDefault();
-      store.dispatch({ type: "SET_DRAG_OVER", dragOver: false });
+      event.preventDefault()
+      store.dispatch({ type: 'SET_DRAG_OVER', dragOver: false })
     },
-    [store, propsRef],
-  );
+    [store, propsRef]
+  )
 
   const onDrop = React.useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
-      propsRef.current.onDrop?.(event);
+      propsRef.current.onDrop?.(event)
 
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented) return
 
-      event.preventDefault();
-      store.dispatch({ type: "SET_DRAG_OVER", dragOver: false });
+      event.preventDefault()
+      store.dispatch({ type: 'SET_DRAG_OVER', dragOver: false })
 
-      const files = Array.from(event.dataTransfer.files);
-      const inputElement = context.inputRef.current;
-      if (!inputElement) return;
+      const files = Array.from(event.dataTransfer.files)
+      const inputElement = context.inputRef.current
+      if (!inputElement) return
 
-      setInputFiles(inputElement, files);
+      setInputFiles(inputElement, files)
     },
-    [store, context.inputRef, propsRef],
-  );
+    [store, context.inputRef, propsRef]
+  )
 
   const onPaste = React.useCallback(
     (event: React.ClipboardEvent<HTMLDivElement>) => {
-      propsRef.current.onPaste?.(event);
+      propsRef.current.onPaste?.(event)
 
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented) return
 
-      event.preventDefault();
-      store.dispatch({ type: "SET_DRAG_OVER", dragOver: false });
+      event.preventDefault()
+      store.dispatch({ type: 'SET_DRAG_OVER', dragOver: false })
 
-      const items = event.clipboardData?.items;
-      if (!items) return;
+      const items = event.clipboardData?.items
+      if (!items) return
 
-      const files: File[] = [];
+      const files: File[] = []
       for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item?.kind === "file") {
-          const file = item.getAsFile();
+        const item = items[i]
+        if (item?.kind === 'file') {
+          const file = item.getAsFile()
           if (file) {
-            files.push(file);
+            files.push(file)
           }
         }
       }
 
-      if (files.length === 0) return;
+      if (files.length === 0) return
 
-      const inputElement = context.inputRef.current;
-      if (!inputElement) return;
+      const inputElement = context.inputRef.current
+      if (!inputElement) return
 
-      setInputFiles(inputElement, files);
+      setInputFiles(inputElement, files)
     },
-    [store, context.inputRef, propsRef],
-  );
+    [store, context.inputRef, propsRef]
+  )
 
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      propsRef.current.onKeyDown?.(event);
+      propsRef.current.onKeyDown?.(event)
 
-      if (
-        !event.defaultPrevented &&
-        (event.key === "Enter" || event.key === " ")
-      ) {
-        event.preventDefault();
-        context.inputRef.current?.click();
+      if (!event.defaultPrevented && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault()
+        context.inputRef.current?.click()
       }
     },
-    [context.inputRef, propsRef],
-  );
+    [context.inputRef, propsRef]
+  )
 
   return useRender({
-    defaultTagName: "div",
+    defaultTagName: 'div',
     props: {
-      role: "region",
+      role: 'region',
       id: context.dropzoneId,
-      "aria-controls": `${context.inputId} ${context.listId}`,
-      "aria-disabled": context.disabled,
-      "aria-invalid": invalid,
+      'aria-controls': `${context.inputId} ${context.listId}`,
+      'aria-disabled': context.disabled,
+      'aria-invalid': invalid,
       dir: context.dir,
       tabIndex: context.disabled ? undefined : 0,
-      className: cn("relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors outline-none select-none hover:bg-accent/30 focus-visible:border-ring/50 data-dragging:border-primary/30 data-dragging:bg-accent/30 data-invalid:border-destructive data-invalid:ring-destructive/20 data-disabled:pointer-events-none", className),
+      className: cn(
+        'relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors outline-none select-none hover:bg-accent/30 focus-visible:border-ring/50 data-dragging:border-primary/30 data-dragging:bg-accent/30 data-invalid:border-destructive data-invalid:ring-destructive/20 data-disabled:pointer-events-none',
+        className
+      ),
       onClick,
       onDragEnter,
       onDragLeave,
@@ -896,143 +856,134 @@ function FileUploadDropzone(props: FileUploadDropzoneProps) {
     },
     render,
     state: {
-      slot: "file-upload-dropzone",
-      disabled: context.disabled ? "" : undefined,
-      dragging: dragOver ? "" : undefined,
-      invalid: invalid ? "" : undefined,
+      slot: 'file-upload-dropzone',
+      disabled: context.disabled ? '' : undefined,
+      dragging: dragOver ? '' : undefined,
+      invalid: invalid ? '' : undefined,
     },
-  });
+  })
 }
 
 interface FileUploadTriggerProps
-  extends React.ComponentProps<"button">, useRender.ComponentProps<"button"> {}
+  extends React.ComponentProps<'button'>, useRender.ComponentProps<'button'> {}
 
 function FileUploadTrigger(props: FileUploadTriggerProps) {
-  const { render, onClick: onClickProp, ...triggerProps } = props;
+  const { render, onClick: onClickProp, ...triggerProps } = props
 
-  const context = useFileUploadContext(TRIGGER_NAME);
+  const context = useFileUploadContext(TRIGGER_NAME)
 
   const propsRef = useValueAsRef({
     onClick: onClickProp,
-  });
+  })
 
   const onClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
-      propsRef.current.onClick?.(event);
+      propsRef.current.onClick?.(event)
 
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented) return
 
-      context.inputRef.current?.click();
+      context.inputRef.current?.click()
     },
-    [context.inputRef, propsRef],
-  );
+    [context.inputRef, propsRef]
+  )
 
   return useRender({
-    defaultTagName: "button",
+    defaultTagName: 'button',
     props: {
-      type: "button",
-      "aria-controls": context.inputId,
+      type: 'button',
+      'aria-controls': context.inputId,
       disabled: context.disabled,
       onClick,
       ...triggerProps,
     },
     render,
     state: {
-      slot: "file-upload-trigger",
-      disabled: context.disabled ? "" : undefined,
+      slot: 'file-upload-trigger',
+      disabled: context.disabled ? '' : undefined,
     },
-  });
+  })
 }
 
-interface FileUploadListProps
-  extends React.ComponentProps<"div">, useRender.ComponentProps<"div"> {
-  orientation?: "horizontal" | "vertical";
-  forceMount?: boolean;
+interface FileUploadListProps extends React.ComponentProps<'div'>, useRender.ComponentProps<'div'> {
+  orientation?: 'horizontal' | 'vertical'
+  forceMount?: boolean
 }
 
 function FileUploadList(props: FileUploadListProps) {
-  const {
-    className,
-    orientation = "vertical",
-    render,
-    forceMount,
-    ...listProps
-  } = props;
+  const { className, orientation = 'vertical', render, forceMount, ...listProps } = props
 
-  const context = useFileUploadContext(LIST_NAME);
-  const fileCount = useStore((state) => state.files.size);
-  const shouldRender = forceMount || fileCount > 0;
+  const context = useFileUploadContext(LIST_NAME)
+  const fileCount = useStore((state) => state.files.size)
+  const shouldRender = forceMount || fileCount > 0
 
   const element = useRender({
-    defaultTagName: "div",
-    props: mergeProps<"div">(
+    defaultTagName: 'div',
+    props: mergeProps<'div'>(
       {
-        role: "list",
+        role: 'list',
         id: context.listId,
-        "aria-orientation": orientation,
+        'aria-orientation': orientation,
         dir: context.dir,
         className: cn(
-          "flex flex-col gap-2 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-top-2 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 data-[state=inactive]:slide-out-to-top-2",
-          orientation === "horizontal" && "flex-row overflow-x-auto p-1.5",
-          className,
+          'flex flex-col gap-2 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-top-2 data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0 data-[state=inactive]:slide-out-to-top-2',
+          orientation === 'horizontal' && 'flex-row overflow-x-auto p-1.5',
+          className
         ),
       },
-      listProps,
+      listProps
     ),
     render,
     state: {
-      slot: "file-upload-list",
+      slot: 'file-upload-list',
       orientation,
-      state: shouldRender ? "active" : "inactive",
+      state: shouldRender ? 'active' : 'inactive',
     },
-  });
+  })
 
-  if (!shouldRender) return null;
+  if (!shouldRender) return null
 
-  return element;
+  return element
 }
 
 interface FileUploadItemContextValue {
-  id: string;
-  fileState: FileState | undefined;
-  nameId: string;
-  sizeId: string;
-  statusId: string;
-  messageId: string;
+  id: string
+  fileState: FileState | undefined
+  nameId: string
+  sizeId: string
+  statusId: string
+  messageId: string
 }
 
-const FileUploadItemContext =
-  React.createContext<FileUploadItemContextValue | null>(null);
+const FileUploadItemContext = React.createContext<FileUploadItemContextValue | null>(null)
 
 function useFileUploadItemContext(consumerName: string) {
-  const context = React.useContext(FileUploadItemContext);
+  const context = React.useContext(FileUploadItemContext)
   if (!context) {
-    throw new Error(`\`${consumerName}\` must be used within \`${ITEM_NAME}\``);
+    throw new Error(`\`${consumerName}\` must be used within \`${ITEM_NAME}\``)
   }
-  return context;
+  return context
 }
 
-interface FileUploadItemProps
-  extends React.ComponentProps<"div">, useRender.ComponentProps<"div"> {
-  value: File;
+interface FileUploadItemProps extends React.ComponentProps<'div'>, useRender.ComponentProps<'div'> {
+  value: File
 }
 
 function FileUploadItem(props: FileUploadItemProps) {
-  const { value, render, className, ...itemProps } = props;
+  const { value, render, className, ...itemProps } = props
 
-  const id = React.useId();
-  const statusId = `${id}-status`;
-  const nameId = `${id}-name`;
-  const sizeId = `${id}-size`;
-  const messageId = `${id}-message`;
+  const id = React.useId()
+  const statusId = `${id}-status`
+  const nameId = `${id}-name`
+  const sizeId = `${id}-size`
+  const messageId = `${id}-message`
 
-  const context = useFileUploadContext(ITEM_NAME);
-  const fileState = useStore((state) => state.files.get(value));
-  const fileCount = useStore((state) => state.files.size);
+  const context = useFileUploadContext(ITEM_NAME)
+  const fileState = useStore((state) => state.files.get(value))
+  const fileCount = useStore((state) => state.files.size)
   const fileIndex = useStore((state) => {
-    const files = Array.from(state.files.keys());
-    return files.indexOf(value) + 1;
-  });
+    const files = Array.from(state.files.keys())
+    return files.indexOf(value) + 1
+  })
 
   const itemContext = React.useMemo(
     () => ({
@@ -1043,31 +994,29 @@ function FileUploadItem(props: FileUploadItemProps) {
       statusId,
       messageId,
     }),
-    [id, fileState, statusId, nameId, sizeId, messageId],
-  );
+    [id, fileState, statusId, nameId, sizeId, messageId]
+  )
 
   const statusText = fileState?.error
     ? `Error: ${fileState.error}`
-    : fileState?.status === "uploading"
+    : fileState?.status === 'uploading'
       ? `Uploading: ${fileState.progress}% complete`
-      : fileState?.status === "success"
-        ? "Upload complete"
-        : "Ready to upload";
+      : fileState?.status === 'success'
+        ? 'Upload complete'
+        : 'Ready to upload'
 
   const element = useRender({
-    defaultTagName: "div",
-    props: mergeProps<"div">(
+    defaultTagName: 'div',
+    props: mergeProps<'div'>(
       {
-        role: "listitem",
+        role: 'listitem',
         id,
-        "aria-setsize": fileCount,
-        "aria-posinset": fileIndex,
-        "aria-describedby": `${nameId} ${sizeId} ${statusId} ${
-          fileState?.error ? messageId : ""
-        }`,
-        "aria-labelledby": nameId,
+        'aria-setsize': fileCount,
+        'aria-posinset': fileIndex,
+        'aria-describedby': `${nameId} ${sizeId} ${statusId} ${fileState?.error ? messageId : ''}`,
+        'aria-labelledby': nameId,
         dir: context.dir,
-        className: cn("relative flex items-center gap-2.5 rounded-md border p-3", className),
+        className: cn('relative flex items-center gap-2.5 rounded-md border p-3', className),
         children: (
           <>
             {props.children}
@@ -1077,127 +1026,164 @@ function FileUploadItem(props: FileUploadItemProps) {
           </>
         ),
       },
-      itemProps,
+      itemProps
     ),
     render,
     state: {
-      slot: "file-upload-item",
+      slot: 'file-upload-item',
     },
-  });
+  })
 
-  if (!fileState) return null;
+  if (!fileState) return null
 
   return (
-    <FileUploadItemContext.Provider value={itemContext}>
-      {element}
-    </FileUploadItemContext.Provider>
-  );
+    <FileUploadItemContext.Provider value={itemContext}>{element}</FileUploadItemContext.Provider>
+  )
+}
+
+async function resolvePreviewUrl(
+  file: File,
+  urlCache: WeakMap<File, string>,
+  signal: AbortSignal
+): Promise<string | null> {
+  const cached = urlCache.get(file)
+  if (cached) return cached
+
+  const blob = await requestPreview(file, signal)
+
+  if (signal.aborted) return null
+
+  const url = URL.createObjectURL(blob ?? file)
+  urlCache.set(file, url)
+  return url
+}
+
+function useImagePreview(file: File | undefined, urlCache: WeakMap<File, string>) {
+  const [preview, setPreview] = React.useState<{
+    file: File
+    url: string
+  } | null>(() => {
+    const cached = file ? urlCache.get(file) : undefined
+    return file && cached ? { file, url: cached } : null
+  })
+
+  React.useEffect(() => {
+    if (!file || !file.type.startsWith('image/')) return
+
+    const controller = new AbortController()
+
+    void resolvePreviewUrl(file, urlCache, controller.signal).then((url) => {
+      if (!url || controller.signal.aborted) return
+
+      setPreview((prev) => (prev?.file === file && prev.url === url ? prev : { file, url }))
+    })
+
+    return () => controller.abort()
+  }, [file, urlCache])
+
+  return file && preview?.file === file ? preview.url : null
 }
 
 interface FileUploadItemPreviewProps
-  extends React.ComponentProps<"div">, useRender.ComponentProps<"div"> {
-  previewRender?: (
-    file: File,
-    fallback: () => React.ReactNode,
-  ) => React.ReactNode;
+  extends React.ComponentProps<'div'>, useRender.ComponentProps<'div'> {
+  previewRender?: (file: File, fallback: () => React.ReactNode) => React.ReactNode
 }
 
 function FileUploadItemPreview(props: FileUploadItemPreviewProps) {
-  const { previewRender, render, children, className, ...previewProps } = props;
+  const { previewRender, render, children, className, ...previewProps } = props
 
-  const itemContext = useFileUploadItemContext(ITEM_PREVIEW_NAME);
-  const context = useFileUploadContext(ITEM_PREVIEW_NAME);
+  const itemContext = useFileUploadItemContext(ITEM_PREVIEW_NAME)
+  const context = useFileUploadContext(ITEM_PREVIEW_NAME)
+
+  const file = itemContext.fileState?.file
+  const previewUrl = useImagePreview(file, context.urlCache)
 
   const getDefaultRender = React.useCallback(
     (file: File) => {
-      if (itemContext.fileState?.file.type.startsWith("image/")) {
-        let url = context.urlCache.get(file);
-        if (!url) {
-          url = URL.createObjectURL(file);
-          context.urlCache.set(file, url);
+      if (file.type.startsWith('image/')) {
+        if (!previewUrl) {
+          return <div aria-hidden className="bg-muted size-full animate-pulse" />
         }
 
         return (
           <img
-            src={url}
+            src={previewUrl}
             alt={file.name}
+            decoding="async"
             className="size-full object-cover"
           />
-        );
+        )
       }
 
-      return getFileIcon(file);
+      return getFileIcon(file)
     },
-    [itemContext.fileState?.file.type, context.urlCache],
-  );
+    [previewUrl]
+  )
 
   const onPreviewRender = React.useCallback(
     (file: File) => {
       if (previewRender) {
-        return previewRender(file, () => getDefaultRender(file));
+        return previewRender(file, () => getDefaultRender(file))
       }
 
-      return getDefaultRender(file);
+      return getDefaultRender(file)
     },
-    [previewRender, getDefaultRender],
-  );
+    [previewRender, getDefaultRender]
+  )
 
   const element = useRender({
-    defaultTagName: "div",
-    props: mergeProps<"div">(
+    defaultTagName: 'div',
+    props: mergeProps<'div'>(
       {
-        "aria-labelledby": itemContext.nameId,
-        className: cn("relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-accent/50 [&>svg]:size-6", className),
-        children: itemContext.fileState ? (
+        'aria-labelledby': itemContext.nameId,
+        className: cn(
+          'relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-accent/50 [&>svg]:size-6',
+          className
+        ),
+        children: file ? (
           <>
-            {onPreviewRender(itemContext.fileState.file)}
+            {onPreviewRender(file)}
             {children}
           </>
         ) : null,
       },
-      previewProps,
+      previewProps
     ),
     render,
     state: {
-      slot: "file-upload-preview",
+      slot: 'file-upload-preview',
     },
-  });
+  })
 
-  if (!itemContext.fileState) return null;
+  if (!itemContext.fileState) return null
 
-  return element;
+  return element
 }
 
 interface FileUploadItemMetadataProps
-  extends React.ComponentProps<"div">, useRender.ComponentProps<"div"> {
-  size?: "default" | "sm";
+  extends React.ComponentProps<'div'>, useRender.ComponentProps<'div'> {
+  size?: 'default' | 'sm'
 }
 
 function FileUploadItemMetadata(props: FileUploadItemMetadataProps) {
-  const {
-    render,
-    size = "default",
-    children,
-    className,
-    ...metadataProps
-  } = props;
+  const { render, size = 'default', children, className, ...metadataProps } = props
 
-  const context = useFileUploadContext(ITEM_METADATA_NAME);
-  const itemContext = useFileUploadItemContext(ITEM_METADATA_NAME);
+  const context = useFileUploadContext(ITEM_METADATA_NAME)
+  const itemContext = useFileUploadItemContext(ITEM_METADATA_NAME)
 
   const element = useRender({
-    defaultTagName: "div",
-    props: mergeProps<"div">(
+    defaultTagName: 'div',
+    props: mergeProps<'div'>(
       {
         dir: context.dir,
-        className: cn("flex min-w-0 flex-1 flex-col", className),
+        className: cn('flex min-w-0 flex-1 flex-col', className),
         children: children ?? (
           <>
             <span
               id={itemContext.nameId}
               className={cn(
-                "truncate text-sm font-medium",
-                size === "sm" && "text-[13px] leading-snug font-normal",
+                'truncate text-sm font-medium',
+                size === 'sm' && 'text-[13px] leading-snug font-normal'
               )}
             >
               {itemContext.fileState?.file.name}
@@ -1205,79 +1191,66 @@ function FileUploadItemMetadata(props: FileUploadItemMetadataProps) {
             <span
               id={itemContext.sizeId}
               className={cn(
-                "truncate text-xs text-muted-foreground",
-                size === "sm" && "text-[11px] leading-snug",
+                'truncate text-xs text-muted-foreground',
+                size === 'sm' && 'text-[11px] leading-snug'
               )}
             >
-              {itemContext.fileState
-                ? formatBytes(itemContext.fileState.file.size)
-                : ""}
+              {itemContext.fileState ? formatBytes(itemContext.fileState.file.size) : ''}
             </span>
             {itemContext.fileState?.error && (
-              <span
-                id={itemContext.messageId}
-                className="text-xs text-destructive"
-              >
+              <span id={itemContext.messageId} className="text-destructive text-xs">
                 {itemContext.fileState.error}
               </span>
             )}
           </>
         ),
       },
-      metadataProps,
+      metadataProps
     ),
     render,
     state: {
-      slot: "file-upload-metadata",
+      slot: 'file-upload-metadata',
     },
-  });
+  })
 
-  if (!itemContext.fileState) return null;
+  if (!itemContext.fileState) return null
 
-  return element;
+  return element
 }
 interface FileUploadItemProgressProps
-  extends React.ComponentProps<"div">, useRender.ComponentProps<"div"> {
-  variant?: "linear" | "circular" | "fill";
-  size?: number;
-  forceMount?: boolean;
+  extends React.ComponentProps<'div'>, useRender.ComponentProps<'div'> {
+  variant?: 'linear' | 'circular' | 'fill'
+  size?: number
+  forceMount?: boolean
 }
 
 function FileUploadItemProgress(props: FileUploadItemProgressProps) {
-  const {
-    variant = "linear",
-    size = 40,
-    render,
-    forceMount,
-    className,
-    ...progressProps
-  } = props;
+  const { variant = 'linear', size = 40, render, forceMount, className, ...progressProps } = props
 
-  const itemContext = useFileUploadItemContext(ITEM_PROGRESS_NAME);
+  const itemContext = useFileUploadItemContext(ITEM_PROGRESS_NAME)
 
   const shouldRender =
     forceMount ||
-    (itemContext.fileState?.progress !== 100 &&
-      itemContext.fileState?.progress !== undefined);
+    (itemContext.fileState?.progress !== 100 && itemContext.fileState?.progress !== undefined)
 
-  let elementProps: React.ComponentProps<"div"> & {
-    children?: React.ReactNode;
-  };
+  let elementProps: React.ComponentProps<'div'> & {
+    children?: React.ReactNode
+  }
 
-  if (variant === "circular") {
-    const circumference = 2 * Math.PI * ((size - 4) / 2);
+  if (variant === 'circular') {
+    const circumference = 2 * Math.PI * ((size - 4) / 2)
     const strokeDashoffset = itemContext.fileState
       ? circumference - (itemContext.fileState.progress / 100) * circumference
-      : circumference;
+      : circumference
 
     elementProps = {
-      role: "progressbar",
-      "aria-valuemin": 0,
-      "aria-valuemax": 100,
-      "aria-valuenow": itemContext.fileState?.progress ?? 0,
-      "aria-valuetext": `${itemContext.fileState?.progress ?? 0}%`,
-      "aria-labelledby": itemContext.nameId,
-      className: cn("absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2", className),
+      role: 'progressbar',
+      'aria-valuemin': 0,
+      'aria-valuemax': 100,
+      'aria-valuenow': itemContext.fileState?.progress ?? 0,
+      'aria-valuetext': `${itemContext.fileState?.progress ?? 0}%`,
+      'aria-labelledby': itemContext.nameId,
+      className: cn('absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2', className),
       children: (
         <svg
           className="-rotate-90 transform"
@@ -1306,157 +1279,154 @@ function FileUploadItemProgress(props: FileUploadItemProgressProps) {
           />
         </svg>
       ),
-    };
-  } else if (variant === "fill") {
-    const progressPercentage = itemContext.fileState?.progress ?? 0;
-    const topInset = 100 - progressPercentage;
+    }
+  } else if (variant === 'fill') {
+    const progressPercentage = itemContext.fileState?.progress ?? 0
+    const topInset = 100 - progressPercentage
 
     elementProps = {
-      role: "progressbar",
-      "aria-valuemin": 0,
-      "aria-valuemax": 100,
-      "aria-valuenow": progressPercentage,
-      "aria-valuetext": `${progressPercentage}%`,
-      "aria-labelledby": itemContext.nameId,
-      className: cn("absolute inset-0 bg-primary/50 transition-[clip-path] duration-300 ease-linear", className),
+      role: 'progressbar',
+      'aria-valuemin': 0,
+      'aria-valuemax': 100,
+      'aria-valuenow': progressPercentage,
+      'aria-valuetext': `${progressPercentage}%`,
+      'aria-labelledby': itemContext.nameId,
+      className: cn(
+        'absolute inset-0 bg-primary/50 transition-[clip-path] duration-300 ease-linear',
+        className
+      ),
       style: {
         clipPath: `inset(${topInset}% 0% 0% 0%)`,
       },
-    };
+    }
   } else {
     elementProps = {
-      role: "progressbar",
-      "aria-valuemin": 0,
-      "aria-valuemax": 100,
-      "aria-valuenow": itemContext.fileState?.progress ?? 0,
-      "aria-valuetext": `${itemContext.fileState?.progress ?? 0}%`,
-      "aria-labelledby": itemContext.nameId,
-      className: cn("relative h-1.5 w-full overflow-hidden rounded-full bg-muted", className),
+      role: 'progressbar',
+      'aria-valuemin': 0,
+      'aria-valuemax': 100,
+      'aria-valuenow': itemContext.fileState?.progress ?? 0,
+      'aria-valuetext': `${itemContext.fileState?.progress ?? 0}%`,
+      'aria-labelledby': itemContext.nameId,
+      className: cn('relative h-1.5 w-full overflow-hidden rounded-full bg-muted', className),
       children: (
         <div
-          className="h-full w-full flex-1 bg-primary transition-transform duration-300 ease-linear"
+          className="bg-primary h-full w-full flex-1 transition-transform duration-300 ease-linear"
           style={{
             transform: `translateX(-${100 - (itemContext.fileState?.progress ?? 0)}%)`,
           }}
         />
       ),
-    };
+    }
   }
 
   const element = useRender({
-    defaultTagName: "div",
-    props: mergeProps<"div">(elementProps, progressProps),
+    defaultTagName: 'div',
+    props: mergeProps<'div'>(elementProps, progressProps),
     render,
     state: {
-      slot: "file-upload-progress",
+      slot: 'file-upload-progress',
       variant,
     },
-  });
+  })
 
-  if (!itemContext.fileState || !shouldRender) return null;
+  if (!itemContext.fileState || !shouldRender) return null
 
-  return element;
+  return element
 }
 
 interface FileUploadItemDeleteProps
-  extends React.ComponentProps<"button">, useRender.ComponentProps<"button"> {}
+  extends React.ComponentProps<'button'>, useRender.ComponentProps<'button'> {}
 
 function FileUploadItemDelete(props: FileUploadItemDeleteProps) {
-  const { render, onClick: onClickProp, ...deleteProps } = props;
+  const { render, onClick: onClickProp, ...deleteProps } = props
 
-  const store = useStoreContext(ITEM_DELETE_NAME);
-  const itemContext = useFileUploadItemContext(ITEM_DELETE_NAME);
+  const store = useStoreContext(ITEM_DELETE_NAME)
+  const itemContext = useFileUploadItemContext(ITEM_DELETE_NAME)
 
   const onClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
-      onClickProp?.(event);
+      onClickProp?.(event)
 
-      if (!itemContext.fileState || event.defaultPrevented) return;
+      if (!itemContext.fileState || event.defaultPrevented) return
 
       store.dispatch({
-        type: "REMOVE_FILE",
+        type: 'REMOVE_FILE',
         file: itemContext.fileState.file,
-      });
+      })
     },
-    [store, itemContext.fileState, onClickProp],
-  );
+    [store, itemContext.fileState, onClickProp]
+  )
 
   const element = useRender({
-    defaultTagName: "button",
-    props: mergeProps<"button">(
+    defaultTagName: 'button',
+    props: mergeProps<'button'>(
       {
-        type: "button",
-        "aria-controls": itemContext.id,
-        "aria-describedby": itemContext.nameId,
+        type: 'button',
+        'aria-controls': itemContext.id,
+        'aria-describedby': itemContext.nameId,
         onClick,
       },
-      deleteProps,
+      deleteProps
     ),
     render,
     state: {
-      slot: "file-upload-item-delete",
+      slot: 'file-upload-item-delete',
     },
-  });
+  })
 
-  if (!itemContext.fileState) return null;
+  if (!itemContext.fileState) return null
 
-  return element;
+  return element
 }
 
 interface FileUploadClearProps
-  extends React.ComponentProps<"button">, useRender.ComponentProps<"button"> {
-  forceMount?: boolean;
+  extends React.ComponentProps<'button'>, useRender.ComponentProps<'button'> {
+  forceMount?: boolean
 }
 
 function FileUploadClear(props: FileUploadClearProps) {
-  const {
-    render,
-    forceMount,
-    disabled,
-    onClick: onClickProp,
-    ...clearProps
-  } = props;
+  const { render, forceMount, disabled, onClick: onClickProp, ...clearProps } = props
 
-  const context = useFileUploadContext(CLEAR_NAME);
-  const store = useStoreContext(CLEAR_NAME);
-  const fileCount = useStore((state) => state.files.size);
+  const context = useFileUploadContext(CLEAR_NAME)
+  const store = useStoreContext(CLEAR_NAME)
+  const fileCount = useStore((state) => state.files.size)
 
-  const isDisabled = disabled || context.disabled;
+  const isDisabled = disabled || context.disabled
 
   const onClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
-      onClickProp?.(event);
+      onClickProp?.(event)
 
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented) return
 
-      store.dispatch({ type: "CLEAR" });
+      store.dispatch({ type: 'CLEAR' })
     },
-    [store, onClickProp],
-  );
+    [store, onClickProp]
+  )
 
-  const shouldRender = forceMount || fileCount > 0;
+  const shouldRender = forceMount || fileCount > 0
 
   const element = useRender({
-    defaultTagName: "button",
-    props: mergeProps<"button">(
+    defaultTagName: 'button',
+    props: mergeProps<'button'>(
       {
-        type: "button",
-        "aria-controls": context.listId,
+        type: 'button',
+        'aria-controls': context.listId,
         disabled: isDisabled,
         onClick,
       },
-      clearProps,
+      clearProps
     ),
     render,
     state: {
-      slot: "file-upload-clear",
-      disabled: isDisabled ? "" : undefined,
+      slot: 'file-upload-clear',
+      disabled: isDisabled ? '' : undefined,
     },
-  });
+  })
 
-  if (!shouldRender) return null;
+  if (!shouldRender) return null
 
-  return element;
+  return element
 }
 
 export {
@@ -1472,4 +1442,4 @@ export {
   type FileUploadProps,
   FileUploadTrigger,
   useStore as useFileUpload,
-};
+}
