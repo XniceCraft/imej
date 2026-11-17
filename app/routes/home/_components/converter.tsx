@@ -1,3 +1,5 @@
+import { useCallback } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,7 +29,7 @@ import { RepeatIcon, UploadIcon, XIcon } from '@phosphor-icons/react/ssr'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod/mini'
 
-import { fileTypes } from '@/lib/config/file-types'
+import { fileTypes, outputFileTypes } from '@/lib/file-types'
 
 const convertSchema = z.object({
   files: z.array(
@@ -41,6 +43,7 @@ const convertSchema = z.object({
 export function Converter() {
   const {
     control,
+    handleSubmit,
     formState: { isSubmitting },
   } = useForm<z.infer<typeof convertSchema>>({
     resolver: zodResolver(convertSchema),
@@ -51,6 +54,9 @@ export function Converter() {
       scale: 1,
     },
   })
+
+  const onSubmit = useCallback(async (data: z.infer<typeof convertSchema>) => {}, [])
+
   return (
     <section className="mx-auto grid w-full max-w-5xl grid-cols-6 gap-5 px-6 py-12 sm:px-4">
       <Controller
@@ -131,7 +137,7 @@ export function Converter() {
             <CardTitle>Output Settings</CardTitle>
           </CardHeader>
           <CardContent>
-            <form>
+            <form onSubmit={handleSubmit(onSubmit)}>
               <FieldGroup>
                 <Controller
                   name="imageType"
@@ -140,7 +146,7 @@ export function Converter() {
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel>Convert To</FieldLabel>
                       <div className="grid grid-cols-3 gap-1.5">
-                        {fileTypes.map((fileType) => (
+                        {outputFileTypes.map((fileType) => (
                           <Button
                             key={fileType}
                             type="button"

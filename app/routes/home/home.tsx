@@ -2,7 +2,7 @@ import { Converter } from './_components/converter'
 import { Navbar } from '@/components/navbar/navbar'
 import { Badge } from '@/components/ui/badge'
 
-import { fileTypes } from '@/lib/config/file-types'
+import { fileTypes } from '@/lib/file-types'
 
 export function meta() {
   return [{ title: 'Imej' }, { name: 'description', content: 'Convert images in seconds' }]
