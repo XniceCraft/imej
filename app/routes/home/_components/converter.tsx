@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,22 +25,48 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { RepeatIcon, UploadIcon, XIcon } from '@phosphor-icons/react/ssr'
+import {
+  ArrowLineDownIcon,
+  CheckCircleIcon,
+  RepeatIcon,
+  UploadIcon,
+  WarningCircleIcon,
+  XIcon,
+} from '@phosphor-icons/react/ssr'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod/mini'
 
-import { fileTypes, outputFileTypes } from '@/lib/file-types'
+import { detectFileType, outputFileTypes } from '@/lib/file-types'
+import { convert } from '@/lib/services/converter'
+import { createZipBlob } from '@/lib/services/zip'
+
+import type { OutputFileType } from '@/types/file'
+
+const OUTPUT_EXT: Record<OutputFileType, string> = {
+  JPEG: 'jpg',
+  PNG: 'png',
+  WebP: 'webp',
+  AVIF: 'avif',
+}
+
+type FileConvertState =
+  | { status: 'idle' }
+  | { status: 'converting'; progress: number }
+  | { status: 'done'; blob: Blob; outputName: string }
+  | { status: 'error'; message: string }
 
 const convertSchema = z.object({
   files: z.array(
     z.file().check(z.mime(['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/heic']))
   ),
-  imageType: z.enum(fileTypes),
+  imageType: z.enum(['JPEG', 'PNG', 'WebP', 'AVIF'] as const),
   quality: z.int().check(z.minimum(40), z.maximum(100)),
   scale: z.number().check(z.minimum(0.25), z.maximum(1)),
 })
 
 export function Converter() {
+  const [fileStates, setFileStates] = useState<Map<File, FileConvertState>>(new Map())
+
   const {
     control,
     handleSubmit,
@@ -55,7 +81,68 @@ export function Converter() {
     },
   })
 
-  const onSubmit = useCallback(async (data: z.infer<typeof convertSchema>) => {}, [])
+  const setFileState = useCallback((file: File, state: FileConvertState) => {
+    setFileStates((prev) => new Map(prev).set(file, state))
+  }, [])
+
+  const onSubmit = useCallback(
+    async (data: z.infer<typeof convertSchema>) => {
+      const outputType = data.imageType as OutputFileType
+      const ext = OUTPUT_EXT[outputType]
+
+      setFileStates(() => {
+        const next = new Map<File, FileConvertState>()
+        for (const file of data.files) {
+          next.set(file, { status: 'converting', progress: 0 })
+        }
+        return next
+      })
+
+      const results: Array<{ name: string; blob: Blob }> = []
+
+      await Promise.all(
+        data.files.map(async (file) => {
+          const fileType = detectFileType(file)
+          if (!fileType) {
+            setFileState(file, { status: 'error', message: 'Unsupported file type' })
+            return
+          }
+
+          try {
+            const blob = await convert({
+              file,
+              fileType,
+              outputType,
+              quality: data.quality,
+              onProgress: (pct) => {
+                setFileState(file, { status: 'converting', progress: pct })
+              },
+            })
+
+            const baseName = file.name.replace(/\.[^.]+$/, '')
+            const outputName = `${baseName}.${ext}`
+            setFileState(file, { status: 'done', blob, outputName })
+            results.push({ name: outputName, blob })
+          } catch (err) {
+            const message = err instanceof Error ? err.message : 'Conversion failed'
+            setFileState(file, { status: 'error', message })
+          }
+        })
+      )
+
+      // Auto-download: single file → direct, multiple → zip
+      const succeeded = results
+      if (succeeded.length === 0) return
+
+      if (succeeded.length === 1) {
+        triggerDownload(succeeded[0]!.blob, succeeded[0]!.name)
+      } else {
+        const zip = await createZipBlob(succeeded)
+        triggerDownload(zip, 'converted-images.zip')
+      }
+    },
+    [setFileState]
+  )
 
   return (
     <section className="mx-auto grid w-full max-w-5xl grid-cols-6 gap-5 px-6 py-12 sm:px-4">
@@ -66,7 +153,18 @@ export function Converter() {
           <FileUpload
             accept="image/jpeg, image/png, image/webp, image/avif, image/heic"
             value={field.value}
-            onValueChange={field.onChange}
+            onValueChange={(files) => {
+              field.onChange(files)
+              // Remove states for files that were removed
+              setFileStates((prev) => {
+                const fileSet = new Set(files)
+                const next = new Map<File, FileConvertState>()
+                for (const [f, s] of prev) {
+                  if (fileSet.has(f)) next.set(f, s)
+                }
+                return next
+              })
+            }}
             className="col-span-4 space-y-4"
             multiple
           >
@@ -94,7 +192,7 @@ export function Converter() {
                   <CardHeader>
                     <CardTitle>Queue</CardTitle>
                     <CardAction>
-                      <FileUploadClear>Clear</FileUploadClear>
+                      <FileUploadClear disabled={isSubmitting}>Clear</FileUploadClear>
                     </CardAction>
                   </CardHeader>
                   <Separator />
@@ -102,19 +200,79 @@ export function Converter() {
               )}
               <CardContent>
                 <FileUploadList>
-                  {field.value.map((file) => (
-                    <FileUploadItem key={file.name} value={file}>
-                      <FileUploadItemPreview />
-                      <FileUploadItemMetadata />
-                      <FileUploadItemDelete
-                        render={(props) => (
-                          <Button variant="ghost" size="icon" className="size-7" {...props}>
-                            <XIcon />
-                          </Button>
-                        )}
-                      />
-                    </FileUploadItem>
-                  ))}
+                  {field.value.map((file) => {
+                    const state = fileStates.get(file) ?? { status: 'idle' }
+                    return (
+                      <FileUploadItem key={file.name} value={file}>
+                        <FileUploadItemPreview />
+                        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                          <FileUploadItemMetadata />
+                          {state.status === 'converting' && (
+                            <div
+                              role="progressbar"
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuenow={state.progress}
+                              className="bg-muted relative h-1.5 w-full overflow-hidden rounded-full"
+                            >
+                              <div
+                                className="bg-primary h-full transition-transform duration-300 ease-linear"
+                                style={{
+                                  transform: `translateX(-${100 - state.progress}%)`,
+                                }}
+                              />
+                            </div>
+                          )}
+                          {state.status === 'error' && (
+                            <span className="text-destructive flex items-center gap-1 text-xs">
+                              <WarningCircleIcon size={12} />
+                              {state.message}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          {state.status === 'done' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 text-green-600"
+                              title="Download"
+                              onClick={() => triggerDownload(state.blob, state.outputName)}
+                            >
+                              <ArrowLineDownIcon size={14} />
+                            </Button>
+                          )}
+                          {state.status === 'converting' && (
+                            <span className="text-muted-foreground flex size-7 items-center justify-center text-xs">
+                              {state.progress}%
+                            </span>
+                          )}
+                          {state.status === 'error' && (
+                            <WarningCircleIcon
+                              size={16}
+                              className="text-destructive mx-1"
+                              weight="fill"
+                            />
+                          )}
+                          {state.status === 'done' && (
+                            <CheckCircleIcon
+                              size={16}
+                              className="mx-1 text-green-600"
+                              weight="fill"
+                            />
+                          )}
+                          <FileUploadItemDelete
+                            disabled={isSubmitting}
+                            render={(props) => (
+                              <Button variant="ghost" size="icon" className="size-7" {...props}>
+                                <XIcon />
+                              </Button>
+                            )}
+                          />
+                        </div>
+                      </FileUploadItem>
+                    )
+                  })}
                 </FileUploadList>
                 {field.value.length === 0 && (
                   <>
@@ -137,7 +295,7 @@ export function Converter() {
             <CardTitle>Output Settings</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)}>
+            <form id="convert-form" onSubmit={handleSubmit(onSubmit)}>
               <FieldGroup>
                 <Controller
                   name="imageType"
@@ -151,7 +309,7 @@ export function Converter() {
                             key={fileType}
                             type="button"
                             variant={field.value === fileType ? 'default' : 'outline'}
-                            disabled={field.disabled}
+                            disabled={field.disabled || isSubmitting}
                             onClick={() => field.onChange(fileType)}
                           >
                             {fileType}
@@ -178,6 +336,7 @@ export function Converter() {
                         min={40}
                         max={100}
                         step={1}
+                        disabled={isSubmitting}
                       />
                       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                     </Field>
@@ -198,6 +357,7 @@ export function Converter() {
                         min={0.25}
                         max={1}
                         step={0.25}
+                        disabled={isSubmitting}
                       />
                       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                     </Field>
@@ -212,9 +372,14 @@ export function Converter() {
               name="files"
               control={control}
               render={({ field }) => (
-                <Button disabled={isSubmitting || field.value.length === 0} className="w-full">
+                <Button
+                  type="submit"
+                  form="convert-form"
+                  disabled={isSubmitting || field.value.length === 0}
+                  className="w-full"
+                >
                   <RepeatIcon size={16} weight="bold" />
-                  Convert Images
+                  {isSubmitting ? 'Converting…' : 'Convert Images'}
                 </Button>
               )}
             />
@@ -223,4 +388,13 @@ export function Converter() {
       </div>
     </section>
   )
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }

@@ -1,8 +1,9 @@
-import type { FileType } from '@/types/file'
+import type { FileType, OutputFileType } from '@/types/file'
 
-export const fileTypes = ['JPEG', 'PNG', 'WebP', 'AVIF']
+export const fileTypes: FileType[] = ['JPEG', 'PNG', 'WebP', 'AVIF', 'HEIC']
 
-export const outputFileTypes = ['JPEG', 'PNG', 'HEIC', 'WebP', 'AVIF']
+/** Supported encode targets (HEIC encoding not yet available). */
+export const outputFileTypes: OutputFileType[] = ['JPEG', 'PNG', 'WebP', 'AVIF']
 
 export function detectFileType(file: File): FileType | null {
   const ext = file.name.split('.').pop()?.toUpperCase() ?? ''

@@ -14,6 +14,10 @@ const loaders = {
     const { encode } = await import('@jsquash/png')
     return async (imageData) => new Blob([await encode(imageData)], { type: 'image/png' })
   }),
+  AVIF: createCodecLoader<EncodeFn>('AVIF encoder', async () => {
+    const { encode } = await import('@jsquash/avif')
+    return async (imageData) => new Blob([await encode(imageData)], { type: 'image/avif' })
+  }),
   WEBP: createCodecLoader<EncodeFn>('WebP encoder', async () => {
     const { encode } = await import('@jsquash/webp')
     return async (imageData, quality) =>
