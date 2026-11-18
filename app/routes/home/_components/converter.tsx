@@ -342,7 +342,7 @@ export function Converter() {
                     </Field>
                   )}
                 />
-                <Controller
+                {/* <Controller
                   name="scale"
                   control={control}
                   render={({ field, fieldState }) => (
@@ -362,7 +362,7 @@ export function Converter() {
                       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                     </Field>
                   )}
-                />
+                /> */}
               </FieldGroup>
             </form>
           </CardContent>
