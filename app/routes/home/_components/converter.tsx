@@ -165,7 +165,7 @@ export function Converter() {
                 return next
               })
             }}
-            className="col-span-4 space-y-4"
+            className="col-span-6 space-y-4 md:col-span-4"
             multiple
           >
             <FileUploadDropzone>
@@ -289,7 +289,7 @@ export function Converter() {
           </FileUpload>
         )}
       />
-      <div className="col-span-2">
+      <div className="col-span-6 md:col-span-2">
         <Card>
           <CardHeader>
             <CardTitle>Output Settings</CardTitle>

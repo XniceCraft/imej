@@ -5,7 +5,7 @@ import { fileTypes } from '@/lib/file-types'
 export function Hero() {
   return (
     <div className="relative overflow-hidden bg-[#1E3A8A] bg-[radial-gradient(rgb(147_197_253/0.3)_1.3px,transparent_1.3px)] bg-size-[28px_28px] text-white">
-      <section className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-12 sm:px-4">
+      <section className="mx-auto flex w-full max-w-5xl justify-between px-6 pt-24 pb-12 sm:px-4">
         <div className="space-y-5">
           <h1 className="text-4xl font-semibold tracking-tight">Convert images in seconds</h1>
           <p className="text-sm text-white/85">
@@ -25,7 +25,7 @@ export function Hero() {
           </div>
         </div>
         <img
-          className="relative z-1 block h-48"
+          className="relative z-1 hidden h-48 md:block"
           src="/assets/svg/illustration.svg"
           alt="Illustration"
         />
