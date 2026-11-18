@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useTheme } from '@/lib/hooks/use-theme'
 
 import { Button } from '@/components/ui/button'
 import { MoonIcon, SunDimIcon } from '@phosphor-icons/react/ssr'
 
 export function ThemeSwitcher() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const { theme, setTheme } = useTheme()
 
   return (
     <Button
